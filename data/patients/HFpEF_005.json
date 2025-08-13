@@ -1,0 +1,17 @@
+{
+  "patient_id": "HFpEF_005",
+  "age": 74,
+  "sex": "female",
+  "conditions": [
+    "heart failure with preserved ejection fraction",
+    "hypertension"
+  ],
+  "medications": [
+    "spironolactone",
+    "amlodipine"
+  ],
+  "labs": {
+    "ntprobnp": 1800
+  },
+  "notes": "NYHA class II symptoms."
+}

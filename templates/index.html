@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clinical Trial Matchmaker (Live)</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+  <div class="container py-4">
+
+    <div class="d-flex flex-wrap justify-content-between align-items-start mb-3">
+      <div class="me-3">
+        <h1 class="fw-bold mb-1">Clinical Trial Matchmaker</h1>
+        <p class="text-muted mb-0">Educational demo with synthetic data • Not medical advice • No PHI</p>
+        {% if cache_meta %}
+          <div class="text-muted small mt-1">
+            Trials cached: {{ cache_meta["rows"] }} • Updated: {{ cache_meta["updated"] }}
+          </div>
+        {% endif %}
+      </div>
+      <div class="d-flex gap-2">
+        <div class="dropdown">
+          <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Dataset size: {{ preset|capitalize }}
+          </button>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="/?preset=quick">Quick (small)</a></li>
+            <li><a class="dropdown-item" href="/?preset=medium">Medium</a></li>
+            <li><a class="dropdown-item" href="/?preset=full">Full (large)</a></li>
+          </ul>
+        </div>
+        <form action="/refresh?preset={{ preset }}" method="POST">
+          <button class="btn btn-outline-secondary">Fetch live trials</button>
+        </form>
+        <form action="/rebuild_embeddings?preset={{ preset }}" method="POST">
+          <button class="btn btn-outline-primary">Rebuild embeddings</button>
+        </form>
+      </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, msg in messages %}
+          <div class="alert alert-{{ category }} py-2">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="card shadow-sm mb-4 {% if status_ok %}border-success{% else %}border-danger{% endif %}">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-2">Status</h5>
+          {% if status_ok %}
+            <span class="badge text-bg-success">OK</span>
+          {% else %}
+            <span class="badge text-bg-danger">Needs setup</span>
+          {% endif %}
+        </div>
+
+        {% if status and not status.error %}
+          <div class="row small">
+            <div class="col-md-6">
+              <div><strong>Trials rows:</strong> {{ status.trials_rows }}</div>
+              <div><strong>Updated:</strong> {{ status.trials_updated }}</div>
+            </div>
+            <div class="col-md-6">
+              <div><strong>Embeddings in memory:</strong> {{ "Yes" if status.embeddings_memory else "No" }}</div>
+              <div><strong>Vectors:</strong> {{ status.embeddings_vectors }}</div>
+              <div><strong>Embeddings on disk:</strong> {{ "Yes" if status.embeddings_disk else "No" }}</div>
+            </div>
+          </div>
+
+          {% if not status_ok %}
+          <div class="alert alert-warning mt-3 mb-0 py-2">
+            <div class="small mb-1"><strong>Next step:</strong></div>
+            <ol class="small mb-0">
+              <li>Click <em>Fetch live trials</em> to load data from the API.</li>
+              <li>Click <em>Rebuild embeddings</em> if embeddings are not in memory.</li>
+            </ol>
+          </div>
+          {% endif %}
+        {% else %}
+          <div class="alert alert-danger small mb-0">
+            Health error. Click <em>Fetch live trials</em> or check logs.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <form method="POST" class="card shadow-sm mb-4" action="{{ url_for('index', preset=preset) }}">
+      <input type="hidden" name="action" value="match">
+      <div class="card-body">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-6">
+            <label class="form-label">Select demo patient</label>
+            <select name="patient" class="form-select">
+              {% for pid in patients %}
+              <option value="{{ pid }}" {% if pid == selected_id %}selected{% endif %}>{{ pid }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6 text-md-end">
+            <button class="btn btn-primary px-4">Find Trials</button>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    {% if results %}
+      <div class="mb-3 d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">Top Matches</h4>
+        <div class="text-muted small">{{ results|length }} results</div>
+      </div>
+
+      <form method="post" action="{{ url_for('export_csv', preset=preset) }}" class="mb-3">
+        <input type="hidden" name="patient" value="{{ selected_id }}">
+        <button type="submit" class="btn btn-outline-secondary btn-sm">Export CSV</button>
+      </form>
+
+      <div class="vstack gap-3">
+        {% for r in results %}
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <h5 class="card-title mb-1">{{ r.title }}</h5>
+                <div class="text-muted small mb-2">{{ r.nct_id }} · {{ r.status }}</div>
+              </div>
+              <span class="badge text-bg-primary fs-6">Score {{ r.score }}</span>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <p class="mb-1 fw-semibold">Why it matches</p>
+                <ul class="mb-2">{% for m in r.why_matched %}<li>{{ m }}</li>{% endfor %}</ul>
+              </div>
+              <div class="col-md-6">
+                {% if r.why_excluded %}
+                <p class="mb-1 fw-semibold">Potential conflicts</p>
+                <ul class="mb-2">{% for x in r.why_excluded %}<li>{{ x }}</li>{% endfor %}</ul>
+                {% endif %}
+              </div>
+            </div>
+            <a href="{{ r.nct_url }}" target="_blank" class="btn btn-sm btn-outline-primary">View on ClinicalTrials.gov</a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center text-muted py-5">Run a match to see results.</div>
+    {% endif %}
+
+    <hr class="my-4">
+    <details>
+      <summary class="h6">How it works</summary>
+      <p class="mt-2">
+        We embed patient context (conditions, meds, age, sex) and trial texts (title + eligibility)
+        using a sentence-transformer. We combine cosine similarity with simple rule checks (age window,
+        sex requirements, keyword hits). This is for education only; not for clinical decisions.
+      </p>
+    </details>
+
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

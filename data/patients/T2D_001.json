@@ -1,0 +1,19 @@
+{
+  "patient_id": "T2D_001",
+  "age": 56,
+  "sex": "female",
+  "conditions": [
+    "type 2 diabetes",
+    "hypertension",
+    "obesity"
+  ],
+  "medications": [
+    "metformin",
+    "lisinopril"
+  ],
+  "labs": {
+    "hba1c": 8.2,
+    "egfr": 72
+  },
+  "notes": "No known cardiovascular disease; non-smoker."
+}

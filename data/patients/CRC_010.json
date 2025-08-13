@@ -1,0 +1,17 @@
+{
+  "patient_id": "CRC_010",
+  "age": 62,
+  "sex": "male",
+  "conditions": [
+    "colorectal cancer",
+    "iron deficiency anemia"
+  ],
+  "medications": [
+    "oxaliplatin",
+    "capecitabine"
+  ],
+  "labs": {
+    "hemoglobin": 9.8
+  },
+  "notes": "Stage III post-resection adjuvant chemo."
+}
