@@ -1,0 +1,11 @@
+# render.yaml
+services:
+- type: web
+  name: ct-matchmaker
+  env: python
+  buildCommand: pip install -r requirements.txt
+  startCommand: gunicorn app:app --preload --timeout 180 -b 0.0.0.0:$PORT
+  envVars:
+  - key: SECRET_KEY
+    generateValue: true
+  healthCheckPath: /healthz
