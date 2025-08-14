@@ -11,10 +11,6 @@ Instead of relying on keyword search, it uses **semantic similarity** via [Sente
 - **Upload or use demo patients** for matching
 - **AI embeddings** (`all-MiniLM-L6-v2`) for semantic search
 - **Ranked matches** for each patient
-- Filter trials by:
-  - Recruitment status
-  - Condition
-  - Phase
 
 ---
 
